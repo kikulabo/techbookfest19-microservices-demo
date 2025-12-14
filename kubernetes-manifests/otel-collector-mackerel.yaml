@@ -19,19 +19,15 @@ data:
         send_batch_size: 1024
 
     exporters:
-      otlphttp:
-        endpoint: https://otlp-vaxila.mackerelio.com
-        headers:
-          Mackerel-Api-Key: ${MACKEREL_API_KEY}
-          Accept: "*/*"
-        compression: gzip
+      awsxray:
+        region: ap-northeast-1
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlphttp]
+          exporters: [awsxray]
 
 ---
 apiVersion: apps/v1
@@ -49,17 +45,15 @@ spec:
       labels:
         app: otel-collector
     spec:
+      serviceAccountName: otel-collector-sa
       containers:
       - name: otel-collector
         image: otel/opentelemetry-collector-contrib:latest
         args:
           - "--config=/conf/config.yaml"
         env:
-        - name: MACKEREL_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mackerel-apikey
-              key: apikey
+        - name: AWS_REGION
+          value: "ap-northeast-1"
         ports:
         - containerPort: 4317  # OTLP gRPC
           name: otlp-grpc
